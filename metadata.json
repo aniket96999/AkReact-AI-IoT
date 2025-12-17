@@ -1,0 +1,7 @@
+{
+  "name": "NEEV - AIoT Smart Plant Care",
+  "description": "Nurtured Environment for Efficient Vegetation. An AI-powered dashboard for plant monitoring, disease detection, and growth analytics.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
