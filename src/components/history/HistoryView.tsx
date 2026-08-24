@@ -33,7 +33,7 @@ const HistoryView: React.FC = () => {
         <div>
           <h2 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
             <Calendar className="w-6 h-6 text-green-400" />
-            History & Logs (Module 4)
+            History & Logs
           </h2>
           <p className="text-slate-400 text-sm">Long-term storage visualized.</p>
         </div>

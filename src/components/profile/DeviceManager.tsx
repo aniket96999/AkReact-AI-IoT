@@ -14,9 +14,9 @@ const MOCK_DEVICES: DeviceProfile[] = [
     networkStatus: 'Online',
     sensors: [
       { type: 'Soil Moisture', status: 'Active', lastValue: '65%' },
-      { type: 'DHT11 Temp', status: 'Active', lastValue: '24°C' },
-      { type: 'DHT11 Humidity', status: 'Active', lastValue: '55%' },
-      { type: 'LDR Light', status: 'Active', lastValue: '1200 Lux' }
+      { type: 'Surrounding Temp', status: 'Active', lastValue: '24°C' },
+      { type: 'Surrounding Humidity', status: 'Active', lastValue: '55%' },
+      { type: 'Ambient Light', status: 'Active', lastValue: '1200 Lux' }
     ]
   },
   {

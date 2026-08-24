@@ -66,7 +66,7 @@ const Dashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* Module 8: Automation Control */}
+        {/* Module 8: Automation Control */}  
         <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2">

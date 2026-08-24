@@ -29,7 +29,7 @@ const AlertsCenter: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
          <div>
            <h2 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
-             <Bell className="w-6 h-6 text-slate-400" /> System Alerts (Module 7)
+             <Bell className="w-6 h-6 text-slate-400" /> System Alerts
            </h2>
            <p className="text-slate-400 text-sm">Central notification hub collecting triggers from all modules.</p>
          </div>

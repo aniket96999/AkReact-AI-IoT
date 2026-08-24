@@ -2,7 +2,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { DiseaseAnalysis, PlantGuide, SensorData, GrowthPrediction, HistoryInsight, PlantProfile, PlantHealthInsight, TargetConditions } from "../types";
 
-const apiKey = process.env.VITE_API_KEY || '';
+const apiKey = import.meta.env.VITE_API_KEY as string;
 const ai = new GoogleGenAI({ apiKey });
 
 // Helper to get Base64 from file

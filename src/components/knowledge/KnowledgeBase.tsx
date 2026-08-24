@@ -48,7 +48,7 @@ const KnowledgeBase: React.FC = () => {
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="text-center space-y-2 mb-8">
         <h2 className="text-3xl font-bold text-slate-100">Agricultural Knowledge Engine</h2>
-        <p className="text-slate-400">Module 3: Generates environmental recipes for Module 1 & 8.</p>
+        <p className="text-slate-400">Generates environmental recipes .</p>
       </div>
 
       <form onSubmit={handleSearch} className="relative">
@@ -103,7 +103,7 @@ const KnowledgeBase: React.FC = () => {
           
           {applied && (
              <p className="text-center text-sm text-green-400 animate-fade-in">
-               ✓ Target ranges updated in Module 1. Automation (Module 8) will now attempt to maintain these conditions.
+               ✓ Target ranges updated in Automation will now attempt to maintain these conditions.
              </p>
           )}
 
