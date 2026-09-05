@@ -1,7 +1,10 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { SensorData, Alert, AutomationState, TargetConditions, AppModule, PlantProfile } from '../types';
+import { SensorData, Alert, AutomationState, TargetConditions, AppModule, PlantProfile, UserProfile } from '../types';
 import { generateMockSensorData } from '../services/mockHardwareService';
+import { getLatestSensorData, getSensorHistory } from '../services/sensorApi';
+import { createAlert, getAlerts, markAlertReadApi } from '../services/dataApi';
+import { getProfile, updateProfile } from '../services/dataApi';
 
 interface AppContextType {
   // Module 1 & 4: Data
@@ -23,6 +26,8 @@ interface AppContextType {
   setTargetConditions: (conditions: TargetConditions) => void;
   activePlant: PlantProfile | null;
   setActivePlant: (plant: PlantProfile | null) => void;
+  userProfile: UserProfile;
+  updateUserProfile: (profile: UserProfile) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -37,29 +42,44 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
   const [targetConditions, setTargetConditions] = useState<TargetConditions | null>(null);
   const [activePlant, setActivePlant] = useState<PlantProfile | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile>({
+    name: 'User', role: 'Lead Agriculturist', farmName: 'My Farm', location: '', email: '', phone: '',
+    language: 'English', accountType: 'Farmer',
+    preferences: { notifications: true, units: 'metric', theme: 'dark', twoFactorEnabled: false }
+  });
 
-  // Simulation Loop (The IoT Hub)
+  useEffect(() => { void getAlerts().then(setAlerts).catch(error => console.warn('Alerts unavailable:', error)); }, []);
+  useEffect(() => { void getProfile().then(setUserProfile).catch(error => console.warn('Profile unavailable:', error)); }, []);
+
+  const updateUserProfile = async (profile: UserProfile) => {
+    const savedProfile = await updateProfile(profile);
+    setUserProfile(savedProfile);
+  };
+
+  // The backend owns simulation and history; the frontend only subscribes by polling.
   useEffect(() => {
-    const interval = setInterval(() => {
-      const newData = generateMockSensorData();
-      
-      // Update Live Data (Module 1)
-      setCurrentData(newData);
-      
-      // Log History (Module 4) - Keep last 100 points
-      setHistory(prev => [...prev.slice(-99), newData]);
+    let mounted = true;
 
-      // Automation Logic (Module 8 - Auto Control)
-      if (targetConditions) {
-        checkAutomationRules(newData, targetConditions);
+    const syncSensorData = async () => {
+      try {
+        const [newData, historyData] = await Promise.all([getLatestSensorData(), getSensorHistory()]);
+        if (!mounted) return;
+        setCurrentData(newData);
+        setHistory(historyData);
+        if (targetConditions) checkAutomationRules(newData, targetConditions);
+        checkThresholds(newData);
+      } catch (error) {
+        console.warn('Sensor API unavailable; waiting for the backend:', error);
       }
+    };
 
-      // Alert Logic (Module 7)
-      checkThresholds(newData);
+    void syncSensorData();
+    const interval = setInterval(() => void syncSensorData(), 3000);
 
-    }, 3000); // 3-second heartbeat
-
-    return () => clearInterval(interval);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
   }, [targetConditions]);
 
   const checkAutomationRules = (data: SensorData, targets: TargetConditions) => {
@@ -89,17 +109,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const isDuplicate = prev.some(a => a.message === alert.message && Date.now() - new Date(a.timestamp).getTime() < 60000);
       if (isDuplicate) return prev;
       
-      return [{
+      const created = {
         ...alert,
         id: Math.random().toString(36).substr(2, 9),
         timestamp: new Date().toISOString(),
         isRead: false
-      }, ...prev];
+      };
+      void createAlert(alert).catch(error => console.warn('Could not persist alert:', error));
+      return [created, ...prev];
     });
   };
 
   const markAlertRead = (id: string) => {
     setAlerts(prev => prev.map(a => a.id === id ? { ...a, isRead: true } : a));
+    void markAlertReadApi(id).catch(error => console.warn('Could not persist alert state:', error));
   };
 
   const toggleAutomation = (key: keyof AutomationState) => {
@@ -110,7 +133,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     <AppContext.Provider value={{
       currentData, history, alerts, unreadAlertCount: alerts.filter(a => !a.isRead).length,
       addAlert, markAlertRead, automation, toggleAutomation,
-      targetConditions, setTargetConditions, activePlant, setActivePlant
+      targetConditions, setTargetConditions, activePlant, setActivePlant, userProfile, updateUserProfile
     }}>
       {children}
     </AppContext.Provider>

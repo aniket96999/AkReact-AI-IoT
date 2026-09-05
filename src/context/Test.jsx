@@ -136,7 +136,7 @@ const styles = {
     background: "#f3f3f3",
     padding: "20px",
     borderRadius: "10px",
-    boxShadow: "0 2px 8pxAniketba(0,0,0,0.1)",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
     textAlign: "center",
   },
   btnOn: {

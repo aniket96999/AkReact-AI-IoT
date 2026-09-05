@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { Camera, AlertTriangle, CheckCircle, XCircle, Beaker, Loader2 } from 'lucide-react';
 import { DiseaseAnalysis } from '../../types';
-import { detectDisease, fileToGenerativePart } from '../../services/geminiService';
+import { detectDisease, fileToGenerativePart } from '../../services/geminiService.ts';
 import { useApp } from '../../context/AppContext';
 
 const DiseaseDetector: React.FC = () => {

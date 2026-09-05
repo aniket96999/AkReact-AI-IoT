@@ -1,9 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { PlantProfile, GrowthStage, PlantHealthInsight, SensorData } from '../../types';
-import { Sprout, Droplets, Sun, Thermometer, Info, Activity, AlertTriangle, ChevronRight, Wind } from 'lucide-react';
+import { Sprout, Droplets, Sun, Thermometer, Info, Activity, AlertTriangle, ChevronRight, Wind, Edit3, Save, X } from 'lucide-react';
 import { generateMockSensorData, getHistoricalData } from '../../services/mockHardwareService';
-import { analyzePlantHealth } from '../../services/geminiService';
+import { createPlant, getPlants, updatePlant } from '../../services/dataApi';
+import { useApp } from '../../context/AppContext';
+import { analyzePlantHealth } from '../../services/geminiService.ts';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
 const MOCK_PLANTS: PlantProfile[] = [
@@ -32,13 +34,21 @@ const MOCK_PLANTS: PlantProfile[] = [
 ];
 
 const PlantManager: React.FC = () => {
-  const [plants] = useState<PlantProfile[]>(MOCK_PLANTS);
+  const [plants, setPlants] = useState<PlantProfile[]>([]);
   const [selectedPlant, setSelectedPlant] = useState<PlantProfile | null>(null);
   const [insight, setInsight] = useState<PlantHealthInsight | null>(null);
   const [loadingInsight, setLoadingInsight] = useState(false);
+  const [editingPlant, setEditingPlant] = useState(false);
+  const [plantDraft, setPlantDraft] = useState<PlantProfile | null>(null);
+  const { currentData, history } = useApp();
+  useEffect(() => { void getPlants().then(setPlants).catch(() => setPlants(MOCK_PLANTS)); }, []);
+  const handleAddPlant = async () => {
+    const plant = await createPlant({ name: 'New Plant', category: 'Vegetable', plantationDate: new Date().toISOString().slice(0, 10), soilType: 'Loamy', wateringPreference: 'When dry', sunlightRequirement: 'Moderate', fertilizerUsed: 'Organic compost', growthStage: 'Seedling' });
+    setPlants(current => [plant, ...current]);
+  };
 
   // Generate some local mock history for the graphs
-  const historyData = getHistoricalData(3); // 3 days
+  const historyData = history.length > 0 ? history : getHistoricalData(3);
   const chartData = historyData.filter((_, i) => i % 6 === 0).map(d => ({
     time: new Date(d.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
     ...d
@@ -46,11 +56,13 @@ const PlantManager: React.FC = () => {
 
   const handleSelectPlant = async (plant: PlantProfile) => {
     setSelectedPlant(plant);
+    setPlantDraft(plant);
+    setEditingPlant(false);
     setInsight(null);
     setLoadingInsight(true);
     
     // Simulate getting recent data
-    const recentData = generateMockSensorData();
+    const recentData = currentData ?? generateMockSensorData();
     try {
       const result = await analyzePlantHealth(plant, recentData);
       setInsight(result);
@@ -61,10 +73,19 @@ const PlantManager: React.FC = () => {
     }
   };
 
+  const handleSavePlant = async () => {
+    if (!plantDraft) return;
+    const savedPlant = await updatePlant(plantDraft.id, plantDraft);
+    setPlants(current => current.map(plant => plant.id === savedPlant.id ? savedPlant : plant));
+    setSelectedPlant(savedPlant);
+    setPlantDraft(savedPlant);
+    setEditingPlant(false);
+  };
+
   if (selectedPlant) {
     return (
       <div className="space-y-6 animate-fade-in">
-        <button onClick={() => setSelectedPlant(null)} className="text-slate-400 hover:text-white flex items-center gap-1 text-sm mb-2">
+        <button onClick={() => { setSelectedPlant(null); setPlantDraft(null); }} className="text-slate-400 hover:text-white flex items-center gap-1 text-sm mb-2">
            ← Back to Plant List
         </button>
         
@@ -83,7 +104,10 @@ const PlantManager: React.FC = () => {
                <span>Soil: {selectedPlant.soilType}</span>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-start">
+             <button onClick={() => setEditingPlant(current => !current)} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm text-slate-200">
+               {editingPlant ? <X className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}{editingPlant ? 'Cancel' : 'Edit Plant'}
+             </button>
              <div className="text-right">
                 <span className="block text-xs text-slate-500 uppercase font-bold">Health Status</span>
                 <span className="text-green-400 font-bold flex items-center justify-end gap-1">
@@ -92,6 +116,23 @@ const PlantManager: React.FC = () => {
              </div>
           </div>
         </div>
+
+        {editingPlant && plantDraft && (
+          <form onSubmit={event => { event.preventDefault(); void handleSavePlant(); }} className="bg-slate-800 border border-green-500/30 rounded-xl p-6 space-y-4">
+            <h3 className="text-lg font-bold text-white">Edit Plant Details</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <label className="space-y-1 text-sm text-slate-400">Plant name<input required value={plantDraft.name} onChange={event => setPlantDraft({ ...plantDraft, name: event.target.value })} className="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100" /></label>
+              <label className="space-y-1 text-sm text-slate-400">Category<select value={plantDraft.category} onChange={event => setPlantDraft({ ...plantDraft, category: event.target.value as PlantProfile['category'] })} className="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100"><option>Flower</option><option>Vegetable</option><option>Fruit</option><option>Herb</option><option>Crop</option></select></label>
+              <label className="space-y-1 text-sm text-slate-400">Growth stage<select value={plantDraft.growthStage} onChange={event => setPlantDraft({ ...plantDraft, growthStage: event.target.value as GrowthStage })} className="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100"><option>Seedling</option><option>Vegetative</option><option>Flowering</option><option>Fruiting</option></select></label>
+              <label className="space-y-1 text-sm text-slate-400">Plantation date<input required type="date" value={plantDraft.plantationDate} onChange={event => setPlantDraft({ ...plantDraft, plantationDate: event.target.value })} className="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100" /></label>
+              <label className="space-y-1 text-sm text-slate-400">Soil type<input required value={plantDraft.soilType} onChange={event => setPlantDraft({ ...plantDraft, soilType: event.target.value })} className="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100" /></label>
+              <label className="space-y-1 text-sm text-slate-400">Watering preference<input required value={plantDraft.wateringPreference} onChange={event => setPlantDraft({ ...plantDraft, wateringPreference: event.target.value })} className="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100" /></label>
+              <label className="space-y-1 text-sm text-slate-400">Sunlight requirement<input required value={plantDraft.sunlightRequirement} onChange={event => setPlantDraft({ ...plantDraft, sunlightRequirement: event.target.value })} className="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100" /></label>
+              <label className="space-y-1 text-sm text-slate-400">Fertilizer used<input required value={plantDraft.fertilizerUsed} onChange={event => setPlantDraft({ ...plantDraft, fertilizerUsed: event.target.value })} className="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100" /></label>
+            </div>
+            <button type="submit" className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-medium"><Save className="w-4 h-4" />Save Plant</button>
+          </form>
+        )}
 
         {/* AI Recommendations */}
         <div className="bg-gradient-to-r from-indigo-900/40 to-slate-800 border border-indigo-500/20 rounded-xl p-6 relative overflow-hidden">
@@ -232,7 +273,7 @@ const PlantManager: React.FC = () => {
         <h3 className="text-xl font-bold text-slate-100 flex items-center gap-2">
           <Sprout className="w-5 h-5 text-green-400" /> My Plants
         </h3>
-        <button className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg font-medium text-sm">
+        <button onClick={() => void handleAddPlant()} className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg font-medium text-sm">
           + Add Crop
         </button>
       </div>

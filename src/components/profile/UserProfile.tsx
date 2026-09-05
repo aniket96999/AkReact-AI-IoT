@@ -1,16 +1,21 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { UserProfile, Language, AccountType } from '../../types';
 import { Save, User, MapPin, Mail, Phone, Globe, Shield, Lock, LogOut } from 'lucide-react';
 
 interface UserProfileProps {
   profile: UserProfile;
   onUpdate: (p: UserProfile) => void;
+  onLogout: () => Promise<void>;
 }
 
-const UserProfileTab: React.FC<UserProfileProps> = ({ profile, onUpdate }) => {
+const UserProfileTab: React.FC<UserProfileProps> = ({ profile, onUpdate, onLogout }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [tempProfile, setTempProfile] = useState<UserProfile>(profile);
+
+  useEffect(() => {
+    setTempProfile(profile);
+  }, [profile]);
 
   const handleSave = () => {
     onUpdate(tempProfile);
@@ -54,7 +59,7 @@ const UserProfileTab: React.FC<UserProfileProps> = ({ profile, onUpdate }) => {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-xs text-slate-500 font-bold">Email</label>
               <div className="relative">
@@ -104,7 +109,7 @@ const UserProfileTab: React.FC<UserProfileProps> = ({ profile, onUpdate }) => {
             Account Settings
           </h4>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-xs text-slate-500 font-bold">Language</label>
               <div className="relative">
@@ -169,8 +174,8 @@ const UserProfileTab: React.FC<UserProfileProps> = ({ profile, onUpdate }) => {
       </div>
       
       <div className="flex justify-end pt-4">
-        <button className="flex items-center gap-2 text-red-400 hover:text-red-300 text-sm font-medium transition-colors">
-          <LogOut className="w-4 h-4" /> Sign Out from All Devices
+        <button type="button" onClick={() => void onLogout()} className="flex items-center gap-2 text-red-400 hover:text-red-300 text-sm font-medium transition-colors">
+          <LogOut className="w-4 h-4" /> Sign Out
         </button>
       </div>
     </div>

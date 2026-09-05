@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Navigation from './components/layout/Navigation';
 import Header from './components/layout/Header';
 import Dashboard from './components/dashboard/Dashboard';
@@ -11,8 +11,15 @@ import ProfileView from './components/profile/ProfileView';
 import AlertsCenter from './components/alerts/AlertsCenter';
 import { AppModule } from './types';
 import { AppProvider } from './context/AppContext';
+import AuthScreen from './components/auth/AuthScreen';
+import { getCurrentUser, logout, type AuthUser } from './services/authApi';
+import { refreshSession } from './services/apiClient';
 
-const AppContent: React.FC = () => {
+interface AppContentProps {
+  onLogout: () => Promise<void>;
+}
+
+const AppContent: React.FC<AppContentProps> = ({ onLogout }) => {
   const [currentModule, setCurrentModule] = useState<AppModule>(AppModule.DASHBOARD);
 
   const renderModule = () => {
@@ -22,7 +29,7 @@ const AppContent: React.FC = () => {
       case AppModule.KNOWLEDGE: return <KnowledgeBase />;
       case AppModule.ANALYTICS: return <AnalyticsView />;
       case AppModule.HISTORY: return <HistoryView />;
-      case AppModule.PROFILE: return <ProfileView />;
+      case AppModule.PROFILE: return <ProfileView onLogout={onLogout} />;
       case AppModule.ALERTS: return <AlertsCenter />;
       default: return <Dashboard />;
     }
@@ -42,9 +49,21 @@ const AppContent: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  useEffect(() => { refreshSession().then(() => getCurrentUser()).then(setUser).catch(() => setUser(null)).finally(() => setCheckingAuth(false)); }, []);
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } finally {
+      setUser(null);
+    }
+  };
+  if (checkingAuth) return <div className="min-h-screen bg-slate-900 text-slate-400 flex items-center justify-center">Loading NEEV...</div>;
+  if (!user) return <AuthScreen onAuthenticated={setUser} />;
   return (
     <AppProvider>
-      <AppContent />
+      <AppContent onLogout={handleLogout} />
     </AppProvider>
   );
 };

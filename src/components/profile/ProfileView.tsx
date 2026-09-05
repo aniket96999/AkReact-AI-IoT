@@ -1,32 +1,22 @@
 
 import React, { useState } from 'react';
-import { UserProfile, UserProfile as IUserProfile } from '../../types';
+import { UserProfile as IUserProfile } from '../../types';
 import UserProfileTab from './UserProfile';
 import DeviceManager from './DeviceManager';
 import PlantManager from './PlantManager';
 import { User, Cpu, Sprout } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
 
-const ProfileView: React.FC = () => {
+interface ProfileViewProps {
+  onLogout: () => Promise<void>;
+}
+
+const ProfileView: React.FC<ProfileViewProps> = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState<'user' | 'devices' | 'plants'>('user');
   
   // Lifted state for UserProfile to share if needed, or just keep it here
-  const [userProfile, setUserProfile] = useState<IUserProfile>({
-    name: 'Aniket Gupta',
-    role: 'Lead Agriculturist',
-    farmName: 'Aniket Farms',
-    location: 'Punjab, India',
-    email: 'Aniket@neev-agri.com',
-    phone: '+91 98765 43210',
-    image: '',
-    language: 'English',
-    accountType: 'Farmer',
-    preferences: {
-      notifications: true,
-      units: 'metric',
-      theme: 'dark',
-      twoFactorEnabled: false
-    }
-  });
+  const { userProfile, updateUserProfile } = useApp();
+  const saveProfile = (profile: IUserProfile) => { void updateUserProfile(profile).catch(error => console.warn('Could not save profile:', error)); };
 
   return (
     <div className="min-h-full pb-10">
@@ -34,7 +24,7 @@ const ProfileView: React.FC = () => {
       <div className="bg-slate-800 border-b border-slate-700 px-6 py-6 mb-6 -mx-4 lg:-mx-8 lg:-mt-8">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-6">
           <div className="w-20 h-20 rounded-full bg-gradient-to-br from-green-500 to-emerald-700 flex items-center justify-center text-2xl font-bold text-white shadow-lg border-4 border-slate-700">
-            AG
+            {userProfile.name?.trim().split(/\s+/).map(n => n[0]).join('').toUpperCase() || ""}
           </div>
           <div className="text-center md:text-left flex-1">
              <h1 className="text-2xl font-bold text-white">{userProfile.name}</h1>
@@ -88,7 +78,7 @@ const ProfileView: React.FC = () => {
       {/* Tab Content */}
       <div className="bg-transparent min-h-[400px]">
         {activeTab === 'user' && (
-          <UserProfileTab profile={userProfile} onUpdate={setUserProfile} />
+          <UserProfileTab profile={userProfile} onUpdate={saveProfile} onLogout={onLogout} />
         )}
         {activeTab === 'plants' && (
           <PlantManager />
